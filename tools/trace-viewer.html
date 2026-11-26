@@ -1,0 +1,1176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+  <title>beg Trace Viewer</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f6fa;
+      --panel: #ffffff;
+      --well: #f7f9fc;
+      --edge: #d9e0eb;
+      --divider: #e6ebf3;
+      --raised: #eaf0f7;
+      --text: #172337;
+      --muted: #47596f;
+      --quiet: #5d6d82;
+      --accent: #166d58;
+      --accent-hover: #115843;
+      --on-highlight: #fff;
+      --session: #61748c;
+      --model: #7952c6;
+      --tools: #2769b5;
+      --streams: #16835f;
+      --error: #a44720;
+      --success-fill: #e1f2e9;
+      --error-fill: #ffede3;
+      --code-text: #253a52;
+      --drop-fill: #ebfaf4f2;
+      --shadow: #22314606;
+      --sans: Geist, "SF Pro Text", system-ui, sans-serif;
+      --mono: "SF Mono", Consolas, "Liberation Mono", monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        --bg: #10131a;
+        --panel: #171c25;
+        --well: #121720;
+        --edge: #2b3444;
+        --divider: #253041;
+        --raised: #243041;
+        --text: #f0f3f9;
+        --muted: #a1aec1;
+        --quiet: #96a4b8;
+        --accent: #8cf0ce;
+        --accent-hover: #b1ffe5;
+        --on-highlight: #132a26;
+        --session: #a7b6cc;
+        --model: #b5a4ff;
+        --tools: #7eb9ff;
+        --streams: #68dfb2;
+        --error: #ffb186;
+        --success-fill: #1e3734;
+        --error-fill: #392b27;
+        --code-text: #cbd8ed;
+        --drop-fill: #142820f2;
+        --shadow: #090b1129;
+      }
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 1rem/1.5 var(--sans); }
+    button, input, select { font: inherit; }
+    button, select { cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+    button { color: inherit; }
+    .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+    .muted { color: var(--muted); }
+    .toolbar { border-bottom: 1px solid var(--edge); background: var(--panel); }
+    .toolbar-inner, main { max-width: 87rem; margin-inline: auto; padding-inline: clamp(1rem, 4vw, 3rem); }
+    .toolbar-inner {
+      display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+      min-height: 4.25rem;
+    }
+    .brand { display: flex; align-items: center; gap: .9rem; }
+    .logo {
+      display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: .6rem;
+      background: var(--success-fill); color: var(--accent); font: 700 .99rem var(--mono);
+    }
+    .brand-name { font-size: 1.1rem; font-weight: 750; }
+    .brand-view { border-left: 1px solid var(--edge); padding-left: .9rem; font-size: .875rem; color: var(--muted); }
+    .button {
+      padding: .48rem .82rem; border: 1px solid var(--edge); border-radius: .5rem;
+      background: var(--well); font-size: .875rem; font-weight: 650; white-space: nowrap;
+    }
+    .button:hover { background: var(--raised); }
+    .button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-highlight); }
+    .button.primary:hover { background: var(--accent-hover); }
+    main { padding-top: 2rem; padding-bottom: 2.75rem; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: clamp(1.9rem, 4vw, 2.9rem); line-height: 1.12; letter-spacing: -.045em; overflow-wrap: anywhere; }
+    h2 { font-size: 1.06rem; letter-spacing: -.015em; }
+    h3 { font-size: 1.125rem; overflow-wrap: anywhere; }
+    .run-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .run-meta { margin-top: .45rem; font-size: .875rem; color: var(--muted); }
+    .run-actions { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: end; align-items: center; }
+    .status {
+      display: inline-flex; align-items: center; gap: .45rem; padding: .36rem .7rem; border-radius: 2rem;
+      white-space: nowrap; color: var(--session); background: var(--raised); font-size: .875rem; font-weight: 650;
+    }
+    .status::before { content: ""; width: .48rem; height: .48rem; border-radius: 50%; background: currentColor; }
+    .status.success { color: var(--accent); background: var(--success-fill); }
+    .status.failure { color: var(--error); background: var(--error-fill); }
+    select, input[type="search"] {
+      color: var(--text); background: var(--well); border: 1px solid var(--edge);
+      border-radius: .5rem; padding: .44rem .65rem; font-size: .875rem;
+    }
+    input[type="search"]::placeholder { color: var(--quiet); }
+    .metrics {
+      margin: 1.35rem 0 1.1rem; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .8rem;
+    }
+    .metric, .panel {
+      background: var(--panel); border: 1px solid var(--edge); border-radius: .85rem; min-width: 0;
+      box-shadow: 0 2px 4px var(--shadow);
+    }
+    .metric { padding: .84rem 1.03rem; }
+    .metric dt { color: var(--muted); font-size: .875rem; }
+    .metric dd { margin: .18rem 0 0; font: 650 clamp(1.35rem, 3vw, 1.93rem)/1.2 var(--mono); letter-spacing: -.06em; }
+    .metric small { color: var(--quiet); font: .75rem/1.4 var(--sans); letter-spacing: 0; display: block; margin-top: .27rem; }
+    .panel-heading { display: flex; gap: .65rem; align-items: center; justify-content: space-between; padding: .93rem 1.1rem; }
+    .panel-heading .muted { font-size: .8125rem; }
+    .timeline { padding-bottom: .7rem; }
+    .timeline .panel-heading .muted { text-align: right; }
+    .timeline-grid { display: grid; grid-template-columns: 5.8rem minmax(0, 1fr); align-items: center; margin: 0 1.25rem 0 1.1rem; }
+    .lane-label { color: var(--muted); font-size: .8125rem; }
+    .track, .ruler { position: relative; margin-inline: .9rem; }
+    .track {
+      height: 1.85rem; border-bottom: 1px solid var(--divider);
+      background-image: linear-gradient(to right, var(--edge) 1px, transparent 1px);
+      background-size: 25% 100%; border-right: 1px solid var(--edge);
+    }
+    .lane-session { --kind: var(--session); }
+    .lane-model { --kind: var(--model); }
+    .lane-tools { --kind: var(--tools); }
+    .lane-streams { --kind: var(--streams); }
+    .lane-label::before { content: ""; display: inline-block; width: .43rem; height: .43rem; margin-right: .45rem; border-radius: 50%; background: var(--kind); }
+    .ruler { height: 1.6rem; color: var(--quiet); font: .73rem var(--mono); }
+    .tick { position: absolute; top: .52rem; transform: translateX(-50%); white-space: nowrap; }
+    .mark {
+      position: absolute; top: 50%; transform: translate(-50%, -50%);
+      display: grid; place-items: center; min-width: .72rem; height: .72rem; padding: 0;
+      border: 0; border-radius: 1rem; background: var(--kind); color: var(--on-highlight);
+      box-shadow: 0 0 0 .2rem var(--panel);
+    }
+    .mark.cluster { height: 1.12rem; min-width: 1.12rem; padding-inline: .22rem; font: 700 .68rem var(--mono); }
+    .mark:hover, .mark.active { box-shadow: 0 0 0 .18rem var(--panel), 0 0 0 .28rem var(--kind); z-index: 1; }
+    .explorer { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 1rem; margin-top: 1.1rem; align-items: start; }
+    .explorer .panel-heading { border-bottom: 1px solid var(--edge); }
+    .view-picker { width: max-content; margin-top: 1.1rem; border: 1px solid var(--edge); }
+    .view-picker button { min-width: 5.2rem; }
+    .view-picker ~ .explorer { margin-top: .7rem; }
+    .steps-view { grid-template-columns: minmax(0, .82fr) minmax(0, 1.38fr); }
+    .step-list { max-height: 32rem; overflow: auto; border-radius: 0 0 .85rem .85rem; }
+    .step-row {
+      display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start;
+      gap: .55rem .8rem; width: 100%; padding: .8rem 1rem; text-align: left;
+      border: 0; border-bottom: 1px solid var(--divider); background: transparent;
+    }
+    .step-row:last-child { border-bottom: 0; }
+    .step-row:hover { background: var(--well); }
+    .step-row[aria-pressed="true"] { background: var(--success-fill); box-shadow: inset 3px 0 var(--accent); }
+    .step-row:focus-visible { outline-offset: -3px; }
+    .step-meta { display: block; color: var(--muted); font-size: .75rem; }
+    .step-name { display: block; margin-top: .14rem; font-size: .94rem; font-weight: 700; overflow-wrap: anywhere; }
+    .step-summary { display: block; margin-top: .27rem; color: var(--muted); font-size: .8rem; overflow-wrap: anywhere; }
+    .step-row .status { font-size: .72rem; padding: .2rem .48rem; gap: .28rem; }
+    .step-row .status::before { width: .35rem; height: .35rem; }
+    .step-content .detail-meta { margin-bottom: .6rem; }
+    .code-block { white-space: pre; overflow-wrap: normal; tab-size: 2; }
+    .program-output pre { max-height: 8rem; }
+    .payload-note { color: var(--muted); font-size: .8rem; margin-bottom: .45rem; }
+    .tool-list { margin-top: 1rem; }
+    .tool-call { border: 1px solid var(--edge); border-radius: .55rem; margin-top: .4rem; }
+    .tool-call summary { cursor: pointer; padding: .5rem .65rem; color: var(--text); font-size: .84rem; }
+    .tool-call summary::marker { color: var(--accent); }
+    .tool-call .detail { padding: 0 .65rem .7rem; }
+    .tool-call .detail-section:first-child { margin-top: 0; }
+    .event-heading { display: flex; gap: .55rem; align-items: baseline; }
+    .control-row { display: flex; flex-wrap: wrap; gap: .55rem; align-items: center; padding: .75rem 1rem; }
+    .control-row input[type="search"] { flex: 1 1 9rem; min-width: 0; }
+    .control-row select { min-width: 6.5rem; }
+    .all-label { display: flex; gap: .4rem; align-items: center; color: var(--muted); font-size: .875rem; white-space: nowrap; }
+    .all-label input { accent-color: var(--accent); }
+    .event-scroll {
+      min-height: 9rem; max-height: 25rem; overflow: auto; border-radius: 0 0 .85rem .85rem;
+      scroll-padding-top: 2.2rem; /* Keep selected rows below the sticky header. */
+    }
+    .table-head, .event-row {
+      display: grid; grid-template-columns: 5.2rem minmax(6rem, 1fr) minmax(0, 1.05fr);
+      align-items: center; gap: .6rem; width: 100%; padding: .53rem 1rem; text-align: left;
+    }
+    .table-head {
+      background: var(--raised); color: var(--muted); font-size: .75rem;
+      font-weight: 650; position: sticky; top: 0; z-index: 2;
+    }
+    .event-row { border: 0; border-bottom: 1px solid var(--divider); background: transparent; font-size: .875rem; }
+    .event-row:hover { background: var(--well); }
+    .event-row[aria-pressed="true"] { background: var(--success-fill); box-shadow: inset 3px 0 var(--accent); }
+    .event-row:focus-visible { outline-offset: -3px; }
+    .event-time { color: var(--muted); font-size: .75rem; }
+    .event-name, .event-summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .event-name { font-weight: 620; }
+    .event-name::before { content: ""; display: inline-block; width: .36rem; height: .36rem; border-radius: 50%; margin-right: .45rem; background: var(--kind); vertical-align: .13rem; }
+    .event-summary { color: var(--muted); font-size: .8rem; }
+    .list-note { padding: .9rem 1rem; color: var(--muted); font-size: .875rem; }
+    .list-note .button { margin-top: .5rem; }
+    .detail { padding: 1rem 1.1rem; }
+    .detail-meta { color: var(--muted); font: .76rem var(--mono); margin: .25rem 0 1rem; overflow-wrap: anywhere; }
+    .detail-section { margin-top: .8rem; }
+    .detail-label { font-size: .8125rem; color: var(--muted); font-weight: 650; margin-bottom: .33rem; }
+    pre {
+      margin: 0; padding: .75rem; background: var(--well); border: 1px solid var(--edge); border-radius: .55rem;
+      max-height: 19rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere;
+      font: .8rem/1.55 var(--mono); color: var(--code-text);
+    }
+    .tabs { display: flex; gap: .25rem; padding: .16rem; background: var(--well); border-radius: .5rem; }
+    .tabs button { background: none; border: 0; border-radius: .38rem; padding: .25rem .5rem; font-size: .75rem; color: var(--muted); }
+    .tabs button[aria-pressed="true"] { color: var(--text); background: var(--raised); }
+    .notice { margin: .8rem 0; color: var(--error); font-size: .9rem; }
+    .empty { border: 1px dashed var(--edge); border-radius: .85rem; text-align: center; padding: 4rem 1rem; }
+    .empty p { margin-top: .55rem; color: var(--muted); }
+    .drop-overlay { position: fixed; inset: .8rem; display: grid; place-items: center; pointer-events: none; z-index: 5; color: var(--accent); background: var(--drop-fill); border: 2px dashed var(--accent); border-radius: 1rem; font-weight: 700; }
+    @media (max-width: 55rem) {
+      .explorer { grid-template-columns: 1fr; }
+      .event-scroll { max-height: 22rem; }
+    }
+    @media (max-width: 37rem) {
+      main { padding-top: 1.2rem; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; }
+      .run-heading { align-items: start; }
+      .run-actions { flex-direction: column; align-items: end; }
+      .brand { gap: .55rem; }
+      .brand-view { padding-left: .55rem; }
+      .timeline-grid { grid-template-columns: 4.1rem minmax(0, 1fr); margin-inline: .7rem; }
+      .lane-label { font-size: .75rem; }
+      .tick { font-size: .66rem; }
+      .table-head, .event-row { grid-template-columns: 3.75rem minmax(0, 1fr) minmax(0, .8fr); padding-inline: .7rem; gap: .45rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="toolbar">
+    <div class="toolbar-inner">
+      <div class="brand"><span class="logo" aria-hidden="true">&gt;_</span><span class="brand-name">beg</span><span class="brand-view">Trace viewer</span></div>
+      <button id="open" class="button primary" type="button">Open trace</button>
+      <input id="file" type="file" aria-label="Trace file" hidden>
+    </div>
+  </header>
+  <main>
+    <p id="notice" class="notice" role="status" hidden></p>
+    <section id="empty" class="empty">
+      <h1>Open a beg trace</h1>
+      <p>Choose a log file or drop it here.</p>
+    </section>
+    <div id="workspace" hidden>
+      <div class="run-heading">
+        <div><h1 id="filename"></h1><p id="run-meta" class="run-meta"></p></div>
+        <div class="run-actions"><select id="run-picker" aria-label="Run" hidden></select><span id="status" class="status"></span></div>
+      </div>
+      <dl id="metrics" class="metrics"></dl>
+      <section class="panel timeline" aria-labelledby="timeline-title">
+        <div class="panel-heading"><h2 id="timeline-title">Timeline</h2><span class="muted">Numbered dots group nearby events</span></div>
+        <div id="timeline" class="timeline-grid"></div>
+      </section>
+      <div class="tabs view-picker" role="group" aria-label="Trace view">
+        <button id="select-steps" type="button" aria-controls="steps-view" aria-pressed="true">Steps</button>
+        <button id="select-events" type="button" aria-controls="events-view" aria-pressed="false">Events</button>
+      </div>
+      <div id="steps-view" class="explorer steps-view">
+        <section class="panel" aria-labelledby="steps-title">
+          <div class="panel-heading"><div class="event-heading"><h2 id="steps-title">Execution steps</h2><span id="step-count" class="muted"></span></div></div>
+          <div id="step-list" class="step-list"></div>
+        </section>
+        <section class="panel" aria-labelledby="step-title">
+          <div class="panel-heading">
+            <h2 id="step-title">Step details</h2>
+            <button id="step-raw" class="button" type="button">View raw event</button>
+          </div>
+          <div id="step-inspector" class="detail step-content"></div>
+        </section>
+      </div>
+      <div id="events-view" class="explorer" hidden>
+        <section class="panel" aria-labelledby="events-title">
+          <div class="panel-heading"><div class="event-heading"><h2 id="events-title">Events</h2><span id="event-count" class="muted" aria-live="polite"></span></div></div>
+          <div class="control-row">
+            <input id="search" type="search" aria-label="Search events" placeholder="Search events">
+            <select id="category" aria-label="Event category">
+              <option value="">All categories</option>
+              <option value="session">Run</option>
+              <option value="model">Model</option>
+              <option value="tools">Tools</option>
+              <option value="streams">Streams</option>
+            </select>
+            <label class="all-label"><input id="all-events" type="checkbox"> All events</label>
+          </div>
+          <div id="event-scroll" class="event-scroll">
+            <div class="table-head" aria-hidden="true"><span>Elapsed</span><span>Event</span><span>Details</span></div>
+            <div id="event-list"></div>
+          </div>
+        </section>
+        <section class="panel" aria-labelledby="detail-title">
+          <div class="panel-heading">
+            <h2 id="detail-title">Event inspector</h2>
+            <div class="tabs" role="group" aria-label="Inspector view">
+              <button id="detail-view" type="button" aria-pressed="true">Details</button>
+              <button id="raw-view" type="button" aria-pressed="false">Raw JSON</button>
+            </div>
+          </div>
+          <div id="inspector" class="detail"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+  <div id="drop-overlay" class="drop-overlay" aria-hidden="true" hidden>Drop to open trace</div>
+  <script type="application/json" id="initial-trace">null</script>
+  <script>
+    "use strict";
+    const byId = (id) => document.getElementById(id);
+    const number = new Intl.NumberFormat();
+    const lanes = { session: "Run", model: "Model", tools: "Tools", streams: "Streams" };
+    const RAW_ITEM_METHOD = "rawResponseItem/completed";
+    const cacheTitles = {
+      preparing_program: "Prepare filter",
+      prepared_program: "Prepared filter",
+      cached_program: "Loaded cached filter",
+      embedded_program: "Loaded embedded filter",
+      program_embedded: "Embedded filter",
+      ran_program: "Run filter locally",
+      replayed_result: "Replay cached result",
+      streaming_input: "Stream input to filter",
+      preparation_declined: "No filter published",
+      cached_decline: "Use live Codex",
+      preparation_failed: "Filter preparation failed",
+      program_rejected: "Filter rejected",
+      runner_unavailable: "Filter runner unavailable",
+      cache_unavailable: "Cache unavailable",
+      write_failed: "Cache write failed",
+    };
+    const cacheSteps = new Set(["prepared_program", "cached_program", "embedded_program", "program_embedded", "ran_program", "replayed_result"]);
+    const state = { runs: [], run: null, view: "steps", step: null, selected: null, raw: false, shown: 200 };
+    const streamName = (stream) => stream || "output";
+    const last = (items) => items[items.length - 1];
+    const object = (value) => value && typeof value === "object" && !Array.isArray(value) ? value : {};
+
+    function element(tag, className, value) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (value !== undefined) node.textContent = value;
+      return node;
+    }
+
+    function bytes(value) {
+      if (value < 1024) return number.format(value) + " B";
+      if (value < 1024 ** 2) return (value / 1024).toFixed(1) + " KiB";
+      return (value / 1024 ** 2).toFixed(1) + " MiB";
+    }
+
+    function seconds(ms) { return (ms / 1000).toFixed(2) + " s"; }
+    function timestamp(ms) { return "+" + seconds(ms); }
+    function pretty(value) { return typeof value === "string" ? value : JSON.stringify(value, null, 2); }
+    function paramsFor(entry) { return object(entry?.record.detail?.params); }
+    function callKey(params, id = null) { return JSON.stringify([params.threadId ?? null, params.turnId ?? null, id]); }
+
+    function decodeJson(value) {
+      if (typeof value !== "string" || !/^\s*[\[{]/.test(value)) return value;
+      try { return JSON.parse(value); } catch { return value; }
+    }
+
+    function contentBlocks(value) {
+      const items = Array.isArray(value) ? value : value == null ? [] : [value];
+      return items.map((item) => {
+        if (typeof item?.text === "string" && ["inputText", "input_text", "outputText", "output_text", "text"].includes(item.type)) {
+          return decodeJson(item.text);
+        }
+        return decodeJson(item);
+      });
+    }
+
+    function codeModeCall(item) {
+      return item.type === "custom_tool_call" && (item.name === "exec" || item.name === "wait");
+    }
+
+    function codeModeOutput(value) {
+      const blocks = contentBlocks(value);
+      const header = typeof blocks[0] === "string"
+        && /^Script (completed|failed|running|terminated)\b/.exec(blocks[0]);
+      return {
+        status: header ? header[1] : "",
+        blocks: header ? blocks.slice(1) : blocks,
+      };
+    }
+
+    function describe(record) {
+      const d = object(record.detail);
+      const method = typeof d.method === "string" ? d.method : "";
+      const p = object(d.params);
+      const item = object(p.item);
+      const row = (lane, title, summary = "", key = true, mark = key) =>
+        ({ lane, title: String(title), summary: String(summary), key, mark });
+      switch (record.event) {
+        case "start": return row("session", "Run started", d.backend || "");
+        case "finish": return row("session", "Run finished", status(d).text);
+        case "model": return row("session", "Model selected", d.id || "");
+        case "cache": return row("tools", cacheTitles[d.action] || "Cache event", d.reason || d.model || "");
+        case "filter_input": return row("streams", "Read stdin locally", bytes(d.bytes || 0));
+        case "stdin_read": return row("streams", "Read stdin", d.eof ? "EOF" : bytes(d.bytes_to_agent || 0));
+        case "stream_written": return row("streams", "Wrote " + streamName(d.stream), bytes(d.bytes || 0));
+        case "tool": return row("tools", d.name || "Process tool", d.accepted ? "Accepted" : "Rejected", !d.accepted);
+        case "token_usage": return row("model", "Token usage", number.format(d.total_tokens || 0) + " tokens", false);
+        case "codex_events_skipped": return row("session", "Events skipped", number.format(d.count || 0) + " events");
+        case "codex_request_error": return row("session", "Codex request error", object(d.error).message || "");
+        case "codex_event": break;
+        default: return row("session", record.event.replaceAll("_", " "), d.signal || d.kind || "");
+      }
+      if (d.method === "item/tool/call") return row("tools", p.tool || "Tool call", "Process tool call");
+      if (d.method === "rawResponse/completed") {
+        const count = object(p.usage).totalTokens;
+        return row("model", "Model response", count == null ? "Completed" : number.format(count) + " tokens");
+      }
+      if (method === RAW_ITEM_METHOD && codeModeCall(item)) {
+        return row("tools", item.name === "exec" ? "Run JavaScript" : "Resume JavaScript", "Codex Code Mode");
+      }
+      if (method === RAW_ITEM_METHOD && item.type === "custom_tool_call_output") {
+        const result = codeModeOutput(item.output);
+        if (result.status) return row("tools", "Code Mode result", "Script " + result.status, result.status === "failed");
+      }
+      if (d.method === "item/completed") {
+        if (item.type === "agentMessage") return row("model", "Assistant message", item.text || "");
+        if (item.type === "reasoning") return row("model", "Reasoning", "", false, true);
+        if (item.type === "commandExecution") return row("tools", "Command executed", item.command || "");
+        if (item.type === "dynamicToolCall") {
+          return row("tools", (item.tool || "Tool") + " result", item.status || "", item.success === false);
+        }
+      }
+      if (d.method === "warning" || d.method === "error") {
+        return row("session", d.method === "warning" ? "Warning" : "Error", p.message || object(p.error).message || "");
+      }
+      if (d.method === "turn/completed") return row("session", "Turn finished", object(p.turn).status || "");
+      const toolItem = typeof item.type === "string" && /tool|command|mcp/i.test(item.type);
+      const modelItem = method.startsWith("rawResponse") || item.type || method.startsWith("item/");
+      const lane = toolItem ? "tools" : modelItem ? "model" : "session";
+      return row(lane, item.type || method || "Codex event", method, false);
+    }
+
+    function status(finish) {
+      if (!finish) return { text: "No exit recorded", style: "" };
+      if (finish.kind === "signal") return { text: finish.signal || "Signaled", style: "failure" };
+      const prefix = finish.kind === "error" ? "Error" : "Exit";
+      return { text: prefix + " " + (finish.code ?? "unknown"), style: finish.kind === "exit" && finish.code === 0 ? "success" : "failure" };
+    }
+
+    function executionSteps(run) {
+      const steps = [];
+      const codeCalls = new Map();
+      const activeCode = new Map();
+      const seenCommands = new Set();
+      const hasDetailedTools = run.events.some((entry) => entry.record.detail?.method === "item/tool/call");
+
+      function addTool(step, params, id) {
+        const active = activeCode.get(callKey(params));
+        // Code Mode assigns new exec-* IDs to delegated calls. Associate them
+        // only when a single Code Mode call is active in that thread and turn.
+        if (typeof id === "string" && id.startsWith("exec-") && active?.size === 1) {
+          active.values().next().value.tools.push(step);
+        } else {
+          steps.push(step);
+        }
+      }
+
+      for (const entry of run.events) {
+        const method = entry.record.detail?.method;
+        const params = paramsFor(entry);
+        const item = object(params.item);
+        if (entry.record.event === "cache" && cacheSteps.has(entry.record.detail?.action)) {
+          steps.push({ kind: "cache", entry });
+        } else if (method === RAW_ITEM_METHOD && codeModeCall(item)) {
+          const step = { kind: "code", entry, item, tools: [], output: [], result: null };
+          steps.push(step);
+          if (item.call_id) {
+            const scope = callKey(params);
+            if (!activeCode.has(scope)) activeCode.set(scope, new Set());
+            activeCode.get(scope).add(step);
+            codeCalls.set(callKey(params, item.call_id), step);
+          }
+        } else if (method === RAW_ITEM_METHOD && item.type === "custom_tool_call_output" && item.call_id) {
+          const step = codeCalls.get(callKey(params, item.call_id));
+          if (step) {
+            const result = codeModeOutput(item.output);
+            step.output.push(...result.blocks);
+            if (result.status) {
+              step.result = { entry, status: result.status };
+              activeCode.get(callKey(params))?.delete(step);
+            }
+          }
+        } else if (method === "item/tool/call") {
+          addTool({
+            kind: "tool", entry, name: params.tool || "Process tool", args: decodeJson(params.arguments),
+            result: run.results.get(callKey(params, params.callId)),
+          }, params, params.callId);
+        } else if ((method === "item/started" || method === "item/completed") && item.type === "commandExecution") {
+          const key = callKey(params, item.id);
+          if (item.id && seenCommands.has(key)) continue;
+          if (item.id) seenCommands.add(key);
+          const result = run.results.get(key);
+          addTool({ kind: "command", entry, item, result }, params, item.id);
+        } else if (!hasDetailedTools && entry.record.event === "tool") {
+          steps.push({ kind: "tool", entry, name: entry.title });
+        }
+      }
+      return steps;
+    }
+
+    function parseTrace(text) {
+      const running = new Map();
+      const runs = [];
+      let skipped = 0;
+      for (const [line, source] of text.split(/\r?\n/).entries()) {
+        if (!source.trim()) continue;
+        let record;
+        try {
+          record = JSON.parse(line === 0 ? source.replace(/^\uFEFF/, "") : source);
+          if (!record || typeof record.event !== "string" || record.pid == null
+              || !Number.isFinite(record.elapsed_ms) || record.elapsed_ms < 0) throw new Error("Invalid record");
+        } catch {
+          skipped += 1;
+          continue;
+        }
+        let run = running.get(record.pid);
+        if (!run || record.event === "start") {
+          run = { pid: record.pid, events: [], results: new Map() };
+          runs.push(run);
+          running.set(record.pid, run);
+        }
+        const entry = { line, record, time: record.elapsed_ms, ...describe(record) };
+        run.events.push(entry);
+        const params = paramsFor(entry);
+        const item = object(params.item);
+        if (record.detail?.method === "item/completed" && typeof item.id === "string") {
+          run.results.set(callKey(params, item.id), entry);
+        }
+      }
+      for (const run of runs) {
+        run.events.sort((a, b) => a.time - b.time || a.line - b.line);
+        if (!run.events.some((entry) => entry.record.detail?.method === "item/tool/call")) {
+          for (const entry of run.events) {
+            if (entry.record.event === "tool") entry.key = entry.mark = true;
+          }
+        }
+        const exit = run.events.findLast((entry) => entry.record.event === "finish");
+        const acceptedExit = run.events.findLast((entry) => entry.record.event === "tool"
+          && entry.record.detail?.name === "process_exit" && entry.record.detail?.accepted);
+        if (exit?.record.detail?.kind === "exit" && acceptedExit) {
+          run.exitRequest = run.events.findLast((entry) => entry.line < acceptedExit.line
+            && entry.record.detail?.method === "item/tool/call" && paramsFor(entry).tool === "process_exit"
+            && decodeJson(paramsFor(entry).arguments)?.code === exit.record.detail.code);
+        }
+        run.steps = executionSteps(run);
+      }
+      return { runs, skipped };
+    }
+
+    function findEvent(run, event) { return object(run.events.findLast((entry) => entry.record.event === event)?.record.detail); }
+
+    function notice(message) {
+      byId("notice").textContent = message;
+      byId("notice").hidden = !message;
+    }
+
+    function loadTrace(name, text, pid) {
+      const { runs, skipped } = parseTrace(text);
+      if (!runs.length) {
+        notice("No beg trace events were found in " + name + ".");
+        return;
+      }
+      state.runs = runs;
+      byId("filename").textContent = name;
+      document.title = name + " · beg Trace Viewer";
+      const picker = byId("run-picker");
+      picker.replaceChildren(...runs.map((run, index) => {
+        const end = run.events.findLast((entry) => entry.record.event === "finish");
+        const option = element("option", "", "PID " + run.pid + " · " + status(end?.record.detail).text);
+        option.value = index;
+        return option;
+      }));
+      picker.hidden = runs.length < 2;
+      const selected = runs.findLast((run) => run.pid === pid) || last(runs);
+      picker.selectedIndex = runs.indexOf(selected);
+      byId("empty").hidden = true;
+      byId("workspace").hidden = false;
+      notice(skipped ? number.format(skipped) + " unreadable " + (skipped === 1 ? "line skipped." : "lines skipped.") : "");
+      showRun(selected);
+    }
+
+    function showRun(run) {
+      state.run = run;
+      state.step = last(run.steps);
+      state.selected = run.events.find((entry) => entry.record.detail?.method === "item/tool/call") || run.events[0];
+      state.raw = false;
+      byId("search").value = "";
+      byId("category").value = "";
+      byId("all-events").checked = false;
+      byId("event-scroll").scrollTop = 0;
+      const start = findEvent(run, "start");
+      const selectedModel = findEvent(run, "model").id;
+      const model = selectedModel || start.model;
+      const local = run.steps.some((step) => step.kind === "cache") && !selectedModel;
+      const finish = run.events.findLast((entry) => entry.record.event === "finish");
+      const end = status(finish?.record.detail);
+      byId("run-meta").textContent = [model, "PID " + run.pid, local ? "Local filter" : start.backend].filter(Boolean).join("  ·  ");
+      byId("status").textContent = end.text;
+      byId("status").className = "status " + end.style;
+      const total = findEvent(run, "token_usage").total_tokens;
+      const responses = run.events.filter((entry) => entry.record.detail?.method === "rawResponse/completed").length;
+      const input = run.events.reduce((size, { record }) => {
+        if (record.event === "stdin_read") return size + (record.detail?.bytes_to_agent || 0);
+        if (record.event === "filter_input") return size + (record.detail?.bytes || 0);
+        return size;
+      }, 0);
+      const output = run.events.filter((entry) => entry.record.event === "stream_written" && entry.record.detail?.stream === "stdout")
+        .reduce((size, entry) => size + (entry.record.detail?.bytes || 0), 0);
+      const metrics = [
+        ["Duration", seconds(finish?.time ?? last(run.events).time), finish ? "Process elapsed time" : "Through last recorded event"],
+        ["Model responses", responses || local ? number.format(responses) : "—", typeof total === "number" ? number.format(total) + " tokens recorded" : "Captured completions"],
+        ["Input read", bytes(input), "Recorded stdin bytes"],
+        ["Output written", bytes(output), "Recorded stdout bytes"],
+      ];
+      byId("metrics").replaceChildren(...metrics.map(([label, value, subtitle]) => {
+        const card = element("div", "metric");
+        const reading = element("dd", "", value);
+        reading.append(element("small", "", subtitle));
+        card.append(element("dt", "", label), reading);
+        return card;
+      }));
+      showView("steps");
+    }
+
+    function showView(view) {
+      state.view = view;
+      byId("steps-view").hidden = view !== "steps";
+      byId("events-view").hidden = view !== "events";
+      byId("select-steps").setAttribute("aria-pressed", String(view === "steps"));
+      byId("select-events").setAttribute("aria-pressed", String(view === "events"));
+      if (view === "steps") {
+        renderSteps();
+        renderTimeline();
+      } else {
+        refreshEvents();
+      }
+    }
+
+    function inspectEvent(entry, raw = false) {
+      byId("category").value = "";
+      byId("search").value = "";
+      if (!entry.key) byId("all-events").checked = true;
+      state.selected = entry;
+      state.raw = raw;
+      showView("events");
+      const index = filteredEvents().indexOf(entry);
+      if (index >= state.shown) {
+        state.shown = index + 1;
+        renderEvents();
+      }
+      const selected = document.querySelector(".event-row[aria-pressed='true']");
+      selected?.focus({ preventScroll: true });
+      selected?.scrollIntoView({ block: "nearest" });
+    }
+
+    function navigateRows(event, rowSelector, revealNext) {
+      if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      const row = event.target.closest(rowSelector);
+      if (!row) return;
+      event.preventDefault();
+
+      const down = event.key === "ArrowDown";
+      let next = down ? row.nextElementSibling : row.previousElementSibling;
+      if (down && next && !next.matches(rowSelector)) next = revealNext?.();
+      if (!next?.matches(rowSelector)) return;
+      next.click();
+      next.scrollIntoView({ block: "nearest", inline: "nearest" });
+    }
+
+    function renderTimeline() {
+      const graph = byId("timeline");
+      const run = state.run;
+      const duration = Math.max(1, last(run.events).time);
+      graph.replaceChildren();
+      for (const [lane, label] of Object.entries(lanes)) {
+        const track = element("div", "track lane-" + lane);
+        graph.append(element("div", "lane-label lane-" + lane, label), track);
+        const groupWindow = duration * 24 / Math.max(1, track.clientWidth);
+        const groups = [];
+        for (const entry of run.events.filter((entry) => entry.mark && entry.lane === lane)) {
+          if (!last(groups) || entry.time - last(groups)[0].time > groupWindow) groups.push([]);
+          last(groups).push(entry);
+        }
+        for (const group of groups) {
+          const entry = group[0];
+          const point = group.reduce((sum, e) => sum + e.time, 0) / group.length;
+          const label = group.length === 1 ? entry.title : group.length + " " + lanes[lane].toLowerCase() + " events";
+          const mark = element("button", "mark" + (group.length > 1 ? " cluster" : ""), group.length > 1 ? group.length : "");
+          mark.type = "button";
+          mark.style.left = 100 * point / duration + "%";
+          mark.title = label + " at " + seconds(point);
+          mark.setAttribute("aria-label", mark.title);
+          const selectedEntry = state.view === "steps" ? state.step?.entry : state.selected;
+          mark.classList.toggle("active", group.includes(selectedEntry));
+          mark.onclick = () => {
+            const step = state.view === "steps" && run.steps.find((candidate) => group.includes(candidate.entry));
+            if (step) {
+              state.step = step;
+              renderSteps();
+              renderTimeline();
+              document.querySelector(".step-row[aria-pressed='true']")?.focus();
+            } else {
+              inspectEvent(entry);
+            }
+          };
+          track.append(mark);
+        }
+      }
+      const ruler = element("div", "ruler");
+      for (let step = 0; step <= 4; step += 1) {
+        const tick = element("span", "tick", step ? (duration * step / 4000).toFixed(duration < 1000 ? 2 : 1) + " s" : "0 s");
+        tick.style.left = 25 * step + "%";
+        ruler.append(tick);
+      }
+      graph.append(element("div"), ruler);
+    }
+
+    function filteredEvents() {
+      const q = byId("search").value.trim().toLowerCase();
+      const category = byId("category").value;
+      const all = byId("all-events").checked;
+      return state.run.events.filter((entry) =>
+        (all || q || entry.key) && (!category || entry.lane === category)
+        && (!q || (entry.title + " " + entry.summary).toLowerCase().includes(q)
+          || JSON.stringify(entry.record.detail ?? {}).toLowerCase().includes(q))
+      );
+    }
+
+    function refreshEvents() {
+      if (!state.run) return;
+      state.shown = 200;
+      const events = filteredEvents();
+      if (!events.includes(state.selected)) state.selected = events[0] || null;
+      renderEvents(events);
+      renderInspector();
+      renderTimeline();
+    }
+
+    function showMoreEvents(events = filteredEvents()) {
+      const nextIndex = state.shown;
+      state.shown += 200;
+      renderEvents(events);
+      return byId("event-list").children[nextIndex];
+    }
+
+    function renderEvents(events = filteredEvents()) {
+      byId("event-count").textContent = number.format(events.length) + " of " + number.format(state.run.events.length);
+      const list = byId("event-list");
+      list.replaceChildren();
+      for (const entry of events.slice(0, state.shown)) {
+        const button = element("button", "event-row lane-" + entry.lane);
+        button.type = "button";
+        button.setAttribute("aria-pressed", String(entry === state.selected));
+        button.title = entry.title + (entry.summary ? " · " + entry.summary.slice(0, 360) : "");
+        button.append(
+          element("span", "event-time mono", timestamp(entry.time)),
+          element("span", "event-name", entry.title),
+          element("span", "event-summary", entry.summary)
+        );
+        button.onclick = () => {
+          state.selected = entry;
+          list.querySelector("[aria-pressed='true']")?.setAttribute("aria-pressed", "false");
+          button.setAttribute("aria-pressed", "true");
+          button.focus({ preventScroll: true });
+          renderInspector();
+          renderTimeline();
+        };
+        list.append(button);
+      }
+      if (!events.length) list.append(element("p", "list-note", "No matching events."));
+      if (events.length > state.shown) {
+        const note = element("div", "list-note");
+        const more = element("button", "button", "Show more events");
+        more.type = "button";
+        more.onclick = () => showMoreEvents(events);
+        note.append(more);
+        list.append(note);
+      }
+    }
+
+    function section(label, value, className = "") {
+      const container = element("div", "detail-section");
+      const code = element("pre", className, pretty(value));
+      code.tabIndex = 0;
+      container.append(element("p", "detail-label", label), code);
+      return container;
+    }
+
+    function toolContent(items) {
+      const content = contentBlocks(items);
+      return content.length === 1 ? content[0] : content;
+    }
+
+    function base64Bytes(value) {
+      if (typeof value !== "string") return null;
+      try { return Uint8Array.from(atob(value), (character) => character.charCodeAt(0)); }
+      catch { return null; }
+    }
+
+    function isReadable(text) { return !/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(text); }
+
+    function byteSection(label, data) {
+      try {
+        const text = new TextDecoder("utf-8", { fatal: true }).decode(data);
+        if (isReadable(text)) return section(label, text);
+      } catch {
+        // Binary results are shown as bytes below.
+      }
+      const preview = data.subarray(0, 512);
+      const lines = [];
+      for (let offset = 0; offset < preview.length; offset += 16) {
+        lines.push(Array.from(preview.subarray(offset, offset + 16), (b) => b.toString(16).padStart(2, "0")).join(" "));
+      }
+      const title = label + (preview.length < data.length ? " · hex preview" : " · hex bytes");
+      return section(title, lines.join("\n"), "code-block");
+    }
+
+    function appendPayload(parent, label, payload) {
+      const value = object(payload);
+      if (typeof value.byte_count === "number") {
+        const size = bytes(value.byte_count);
+        if (value.eof && value.byte_count === 0 && !value.text) {
+          parent.append(element("p", "payload-note", "End of input (EOF)"));
+          return;
+        }
+        const title = label + " · " + size + (value.eof ? " · EOF" : "");
+        if (typeof value.text === "string" && !value.text_lossy && isReadable(value.text)) {
+          parent.append(section(title, value.text));
+          return;
+        }
+        const data = base64Bytes(value.base64);
+        if (data) {
+          parent.append(byteSection(title, data));
+          return;
+        }
+      }
+      const data = base64Bytes(value.base64);
+      if (data && typeof value.text !== "string") {
+        parent.append(byteSection(label, data));
+        return;
+      }
+      const readable = payload != null && typeof payload === "object" ? JSON.stringify(payload, function (key, item) {
+        return key === "base64" && typeof this.text === "string" && !this.text_lossy ? undefined : item;
+      }, 2) : payload;
+      parent.append(section(label, readable));
+    }
+
+    function toolResult(step) {
+      return object(paramsFor(step.result).item);
+    }
+
+    function resultValue(step) {
+      const result = toolResult(step);
+      return result.contentItems == null ? undefined : toolContent(result.contentItems);
+    }
+
+    function stepLabel(text, style = "") { return { text, style }; }
+
+    function stepExit(step) {
+      const tools = step.kind === "code" ? step.tools : [step];
+      return tools.some((tool) => tool.entry === state.run.exitRequest)
+        ? status(findEvent(state.run, "finish")) : null;
+    }
+
+    function toolSummary(step) {
+      const value = object(resultValue(step));
+      if (step.name === "stream_read" && typeof value.byte_count === "number") {
+        return value.eof ? "EOF" : bytes(value.byte_count) + " from stdin";
+      }
+      if (step.name === "stream_write" && typeof value.written === "number") {
+        return bytes(value.written) + " to " + streamName(step.args?.stream);
+      }
+      if (step.name === "process_exit" && typeof step.args?.code === "number") return "Exit " + step.args.code;
+      return toolResult(step).success === false ? "Failed" : "";
+    }
+
+    function stepInfo(step) {
+      if (step.kind === "cache") {
+        const action = step.entry.record.detail.action;
+        const end = action === "ran_program" || action === "replayed_result"
+          ? status(findEvent(state.run, "finish")) : stepLabel("Ready", "success");
+        return { name: step.entry.title, source: "beg", end, summary: step.entry.summary };
+      }
+      if (step.kind === "tool") {
+        const completed = toolResult(step);
+        const accepted = step.entry.record.detail?.accepted;
+        const end = stepExit(step) ?? (completed.success === true ? stepLabel("Completed", "success")
+          : completed.success === false ? stepLabel("Failed", "failure")
+          : accepted === true ? stepLabel("Accepted", "success")
+          : accepted === false ? stepLabel("Rejected", "failure") : stepLabel("Call recorded"));
+        return { name: step.name, source: "beg tool", end, summary: toolSummary(step) };
+      }
+      if (step.kind === "command") {
+        const result = step.result ? toolResult(step) : step.item;
+        const end = typeof result.exitCode === "number"
+          ? status({ kind: "exit", code: result.exitCode }) : stepLabel(result.status === "inProgress" ? "Started" : result.status || "Command recorded");
+        return { name: "Run shell command", source: "Codex", end, summary: result.command || "" };
+      }
+      const outcome = step.result?.status;
+      const end = stepExit(step) ?? ({
+        completed: stepLabel("Completed", "success"),
+        failed: stepLabel("Failed", "failure"),
+        running: stepLabel("Running"),
+        terminated: stepLabel("Terminated", "failure"),
+      }[outcome] || stepLabel("Call recorded"));
+      const names = step.tools.map((tool) => tool.name);
+      const writesStdout = step.tools.some((tool) => tool.name === "stream_write" && tool.args?.stream === "stdout");
+      let name = step.item.name === "wait" ? "Resume JavaScript" : "Run JavaScript";
+      if (names.length === 1 && names[0] === "process_context") name = "Get process context";
+      else if (names.includes("stream_read") && writesStdout) name = "Read stdin and write stdout";
+      else if (names.includes("spawn")) name = "Run a child process";
+      const error = step.output.find((value) => typeof value === "string" && value.startsWith("Script error:"));
+      const summaryParts = [];
+      if (step.tools.length) summaryParts.push(number.format(step.tools.length) + (step.tools.length === 1 ? " tool call" : " tool calls"));
+      const stdinBytes = step.tools.filter((tool) => tool.name === "stream_read")
+        .reduce((size, tool) => size + (object(resultValue(tool)).byte_count || 0), 0);
+      if (stdinBytes) summaryParts.push(bytes(stdinBytes) + " read");
+      if (writesStdout) {
+        const stdoutBytes = step.tools.filter((tool) => tool.name === "stream_write" && tool.args?.stream === "stdout")
+          .reduce((size, tool) => size + (object(resultValue(tool)).written || 0), 0);
+        if (stdoutBytes) summaryParts.push(bytes(stdoutBytes) + " to stdout");
+      }
+      const summary = error ? error.replace(/^Script error:\s*/, "").split("\n")[0] : summaryParts.join(" · ");
+      return { name, source: "Code Mode", end, summary };
+    }
+
+    function renderSteps() {
+      const { run } = state;
+      const list = byId("step-list");
+      list.replaceChildren();
+      byId("step-count").textContent = number.format(run.steps.length);
+      for (const step of run.steps) {
+        const info = stepInfo(step);
+        const button = element("button", "step-row");
+        button.type = "button";
+        button.setAttribute("aria-pressed", String(step === state.step));
+        const label = element("span");
+        label.append(element("span", "step-meta mono", timestamp(step.entry.time) + " · " + info.source),
+          element("span", "step-name", info.name));
+        if (info.summary) label.append(element("span", "step-summary", info.summary));
+        button.append(label, element("span", "status " + info.end.style, info.end.text));
+        button.onclick = () => {
+          state.step = step;
+          list.querySelector("[aria-pressed='true']")?.setAttribute("aria-pressed", "false");
+          button.setAttribute("aria-pressed", "true");
+          button.focus({ preventScroll: true });
+          renderStepInspector();
+          renderTimeline();
+        };
+        list.append(button);
+      }
+      if (!run.steps.length) list.append(element("p", "list-note", "No execution steps were recorded. View Events for the trace records."));
+      if (!run.events.some((entry) => entry.record.event === "codex_event") && !run.steps.some((step) => step.kind === "cache")) {
+        list.append(element("p", "list-note", "Summary trace. Set BEG_DEBUG=1 to capture generated code and tool results."));
+      }
+      if (findEvent(run, "start").child_execution === "deny") {
+        list.append(element("p", "list-note", "Direct child I/O was disabled for this run."));
+      }
+      renderStepInspector();
+    }
+
+    function renderTool(parent, step) {
+      if (step.kind === "command") {
+        const result = step.result ? toolResult(step) : step.item;
+        if (result.command) parent.append(section("Command", result.command, "code-block"));
+        if (result.aggregatedOutput != null) parent.append(section("Output", result.aggregatedOutput));
+        return;
+      }
+      const args = object(step.args);
+      if (step.args !== undefined) {
+        parent.append(section("Arguments", step.args));
+        if (step.name === "publish_filter" && typeof args.source === "string") {
+          parent.append(section("JavaScript", args.source, "code-block"));
+        }
+        if (step.name === "stream_write") {
+          const data = base64Bytes(args.base64);
+          if (typeof args.text === "string") parent.append(section("Requested text", args.text));
+          else if (data) parent.append(byteSection("Requested bytes", data));
+        }
+        if (step.name === "spawn" && Array.isArray(args.args) && args.args[0] === "-c" && typeof args.args[1] === "string") {
+          parent.append(section("Command source", args.args[1], "code-block"));
+        }
+      }
+      const result = resultValue(step);
+      if (result !== undefined) {
+        appendPayload(parent, "Result", result);
+      } else {
+        const exit = stepExit(step);
+        parent.append(element("p", "payload-note", exit ? "The run finished with " + exit.text.toLowerCase() + "." : "No tool result was recorded."));
+      }
+    }
+
+    function recordedOutput(tools, stream) {
+      const chunks = [];
+      for (const tool of tools) {
+        if (tool.name !== "stream_write" || tool.args?.stream !== stream) continue;
+        const written = object(resultValue(tool)).written;
+        if (!Number.isSafeInteger(written) || written < 1) continue;
+        const data = typeof tool.args.text === "string"
+          ? new TextEncoder().encode(tool.args.text) : base64Bytes(tool.args.base64);
+        if (data && written <= data.length) chunks.push(data.subarray(0, written));
+      }
+      if (!chunks.length) return null;
+      const data = new Uint8Array(chunks.reduce((size, chunk) => size + chunk.length, 0));
+      let offset = 0;
+      for (const chunk of chunks) {
+        data.set(chunk, offset);
+        offset += chunk.length;
+      }
+      return data;
+    }
+
+    function renderStepInspector() {
+      const inspector = byId("step-inspector");
+      const step = state.step;
+      inspector.replaceChildren();
+      byId("step-raw").disabled = !step;
+      if (!step) {
+        inspector.append(element("p", "muted", "Select a step to inspect it."));
+        return;
+      }
+      const info = stepInfo(step);
+      inspector.append(element("h3", "", info.name), element("p", "detail-meta", timestamp(step.entry.time) + " · " + info.source));
+      if (step.kind === "cache") {
+        inspector.append(section("Cache event", step.entry.record.detail));
+        return;
+      }
+      if (step.kind !== "code") {
+        renderTool(inspector, step);
+        return;
+      }
+      for (const output of step.output) {
+        const error = typeof output === "string" && output.startsWith("Script error:");
+        appendPayload(inspector, error ? "Error" : "Code Mode output", error ? output.replace(/^Script error:\s*/, "") : output);
+      }
+      for (const stream of ["stdout", "stderr"]) {
+        const data = recordedOutput(step.tools, stream);
+        if (data) {
+          const output = byteSection("Program " + stream + " · " + bytes(data.length), data);
+          output.classList.add("program-output");
+          inspector.append(output);
+        }
+      }
+      if (typeof step.item.input === "string") {
+        inspector.append(section(step.item.name === "exec" ? "JavaScript" : "Tool input", step.item.input, "code-block"));
+      }
+      if (!step.result && !stepExit(step)) {
+        inspector.append(element("p", "payload-note", "No Code Mode result was recorded."));
+      }
+      if (step.tools.length) {
+        const list = element("div", "tool-list");
+        list.append(element("p", "detail-label", "Tool calls"));
+        for (const tool of step.tools) {
+          const details = element("details", "tool-call");
+          const summary = toolSummary(tool);
+          const title = tool.kind === "command" ? "Shell command" : tool.name;
+          details.append(element("summary", "", summary ? title + " · " + summary : title));
+          const payload = element("div", "detail");
+          details.addEventListener("toggle", () => {
+            if (details.open && !payload.childElementCount) renderTool(payload, tool);
+          });
+          details.append(payload);
+          list.append(details);
+        }
+        inspector.append(list);
+      }
+    }
+
+    function renderInspector() {
+      byId("raw-view").setAttribute("aria-pressed", String(state.raw));
+      byId("detail-view").setAttribute("aria-pressed", String(!state.raw));
+      const inspector = byId("inspector");
+      inspector.replaceChildren();
+      if (!state.selected) {
+        inspector.append(element("p", "muted", "Select an event to inspect it."));
+        return;
+      }
+      const entry = state.selected;
+      const d = object(entry.record.detail);
+      const p = object(d.params);
+      const item = object(p.item);
+      inspector.append(element("h3", "", entry.title),
+        element("p", "detail-meta", timestamp(entry.time) + "  ·  " + (d.method || entry.record.event)));
+      if (state.raw) {
+        inspector.append(section("Trace record", entry.record));
+      } else if (d.method === "item/tool/call" || item.type === "dynamicToolCall") {
+        const result = state.run.results.get(callKey(p, p.callId ?? item.id));
+        renderTool(inspector, {
+          kind: "tool", entry, name: p.tool || item.tool, args: decodeJson(p.arguments ?? item.arguments), result,
+        });
+      } else if (d.method === RAW_ITEM_METHOD && item.type === "custom_tool_call") {
+        inspector.append(section(item.name === "exec" ? "JavaScript" : "Tool input", item.input ?? "", "code-block"));
+      } else if (d.method === RAW_ITEM_METHOD && item.type === "function_call") {
+        appendPayload(inspector, "Arguments", decodeJson(item.arguments));
+      } else if (d.method === RAW_ITEM_METHOD && item.type === "custom_tool_call_output") {
+        const output = codeModeOutput(item.output);
+        if (output.status) inspector.append(element("p", "payload-note", "Script " + output.status));
+        for (const block of output.blocks) appendPayload(inspector, "Output", block);
+      } else if (d.method === RAW_ITEM_METHOD && item.type === "function_call_output") {
+        for (const block of contentBlocks(item.output)) appendPayload(inspector, "Output", block);
+      } else if (item.type === "reasoning") {
+        const summary = Array.isArray(item.summary) ? item.summary.map((part) => part?.text || part).filter((part) => typeof part === "string").join("\n") : item.summary;
+        if (typeof summary === "string" && summary) inspector.append(section("Reasoning summary", summary));
+        else inspector.append(element("p", "muted", item.encrypted_content
+          ? "Encrypted reasoning payload. No readable summary was recorded." : "No reasoning summary was recorded."));
+      } else if (item.type === "commandExecution") {
+        renderTool(inspector, { kind: "command", entry, item, result: state.run.results.get(callKey(p, item.id)) });
+      } else if (item.type === "agentMessage" && typeof item.text === "string") {
+        inspector.append(section("Message", item.text));
+      } else {
+        inspector.append(section("Event data", d.method ? p : entry.record.detail ?? {}));
+      }
+    }
+
+    let fileRequest = 0;
+    async function openFile(file) {
+      if (!file) return;
+      const request = ++fileRequest;
+      try {
+        const text = await file.text();
+        if (request === fileRequest) loadTrace(file.name, text);
+      } catch {
+        if (request === fileRequest) notice("Could not read " + file.name + ".");
+      }
+    }
+    byId("open").onclick = () => byId("file").click();
+    byId("file").onchange = (event) => { openFile(event.target.files[0]); event.target.value = ""; };
+    byId("run-picker").onchange = (event) => showRun(state.runs[Number(event.target.value)]);
+    byId("select-steps").onclick = () => showView("steps");
+    byId("select-events").onclick = () => showView("events");
+    byId("step-list").onkeydown = (event) => navigateRows(event, ".step-row");
+    byId("event-list").onkeydown = (event) => navigateRows(event, ".event-row", showMoreEvents);
+    byId("step-raw").onclick = () => { if (state.step) inspectEvent(state.step.entry, true); };
+    byId("search").oninput = refreshEvents;
+    byId("category").onchange = refreshEvents;
+    byId("all-events").onchange = refreshEvents;
+    byId("detail-view").onclick = () => { state.raw = false; renderInspector(); };
+    byId("raw-view").onclick = () => { state.raw = true; renderInspector(); };
+    window.addEventListener("resize", () => { if (state.run) renderTimeline(); });
+    window.addEventListener("dragover", (event) => {
+      if (!Array.from(event.dataTransfer.types).includes("Files")) return;
+      event.preventDefault();
+      byId("drop-overlay").hidden = false;
+    });
+    window.addEventListener("dragleave", (event) => {
+      if (!event.relatedTarget) byId("drop-overlay").hidden = true;
+    });
+    window.addEventListener("drop", (event) => {
+      if (!event.dataTransfer.files.length) return;
+      event.preventDefault();
+      byId("drop-overlay").hidden = true;
+      openFile(event.dataTransfer.files[0]);
+    });
+    const initialTrace = JSON.parse(byId("initial-trace").textContent);
+    if (initialTrace) loadTrace(initialTrace.name, initialTrace.text, initialTrace.pid);
+  </script>
+</body>
+</html>

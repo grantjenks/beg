@@ -1,0 +1,13 @@
+#!/usr/bin/env beg
+
+Accept one argument, the path to the JSON file to update.
+Fetch the National parks table from https://en.wikipedia.org/wiki/List_of_national_parks_of_the_United_States.
+
+Write a JSON array sorted by park name. Each entry has a name, a locations array
+of state or territory names, an established date in YYYY-MM-DD format, and acres
+as a number. Use the values in the table and omit citations and coordinates.
+
+Validate the complete table and any existing JSON before atomically replacing
+the file. Leave an identical file untouched. Print one line per added, removed,
+or changed park in the form `added Acadia`, or print `up to date` when they match.
+On failure, explain the problem on stderr and leave the existing file intact.

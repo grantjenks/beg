@@ -1,0 +1,18 @@
+#!/usr/bin/env beg
+
+Serve one CGI request.
+
+For GET, take the first name parameter from the URL-decoded query string.
+Use "world" when it is absent.
+Return status 200 with a plain-text body saying "Hello, " followed by
+the name and a newline.
+
+For other methods, return status 405, an Allow: GET header,
+and a short plain-text error body.
+
+Write CGI headers to stdout using CRLF line endings, followed by a
+blank line and the body. Use Content-Type: text/plain; charset=utf-8.
+Put diagnostics only on stderr.
+
+Exit 0 if the response was emitted successfully, including a 405 response.
+Exit 1 if the response could not be emitted.

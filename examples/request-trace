@@ -1,0 +1,12 @@
+#!/usr/bin/env beg
+
+Accept a request ID and a directory. Recursively search current .log files
+and rotated .log.* files, including gzip-compressed files.
+
+A record starts with an ISO 8601 timestamp at the beginning of a line and
+continues through the line before the next timestamp. The first line can
+contain a request_id= field whose value ends at whitespace.
+
+Print records for the exact request ID in chronological order, including every
+continuation line. Print identical records only once, including across files.
+Exit 1 if nothing matched or 2 if an input could not be read.

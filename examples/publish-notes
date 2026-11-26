@@ -1,0 +1,13 @@
+#!/usr/bin/env beg
+
+Accept a source directory and a new destination directory.
+Copy the tree, lowercasing names and replacing runs of spaces and underscores
+with one hyphen in each filename and directory name.
+
+Update relative Markdown links and images, including reference definitions,
+to point to their corresponding renamed files or directories in the copy.
+Keep link text, fragments, and queries. Leave external links, links outside the
+tree, and the original files alone.
+
+If any paths collide after renaming, list the collisions on stderr and exit
+before creating the destination. On success, print the destination path.

@@ -1,0 +1,18 @@
+#!/usr/bin/env beg
+
+Read text from stdin and print its most frequent words.
+
+Accept zero or one argument. With no argument, print up to 10 words.
+Otherwise, the argument must be a positive decimal integer giving the limit.
+For any other arguments, write a short usage message to stderr and exit 2.
+
+A word is a maximal run of ASCII letters A through Z or a through z.
+Treat uppercase and lowercase as equivalent.
+Count every occurrence exactly.
+
+Print one line per word: the decimal count, a tab, and the lowercase word.
+Sort by decreasing count, breaking ties alphabetically.
+Print no heading, explanation, or other text.
+Empty input produces no output.
+
+Exit 0 after successful completion, or 1 if the input cannot be processed.

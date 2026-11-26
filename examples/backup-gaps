@@ -1,0 +1,9 @@
+#!/usr/bin/env beg
+
+Accept a source directory and one or more backup directories.
+Check regular files recursively. A source file is covered if any file in any
+backup has the same bytes, regardless of its name, path, or modification time.
+
+Group uncovered source files that have identical contents. Print one JSON array
+of source-relative paths per group, sorted by path within and across groups.
+Exit 0 if every file is covered, 1 if there are gaps, or 2 on a read error.

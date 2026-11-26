@@ -1,0 +1,12 @@
+#!/usr/bin/env beg
+
+Accept exactly one argument: a literal, case-sensitive search string.
+With any other number of arguments, write usage to stderr and exit 2.
+
+Read stdin and copy matching lines to stdout unchanged.
+Preserve a final matching line even if it has no terminating newline.
+Do not print anything for nonmatching lines.
+
+Exit 0 if at least one line matched.
+Exit 1 if no line matched.
+Exit 2 if an input error prevents completion.

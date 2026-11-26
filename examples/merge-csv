@@ -1,0 +1,17 @@
+#!/usr/bin/env beg
+
+Accept three CSV files, ORIGINAL, ALICE, and BOB, followed by a key column.
+Match rows by unique key and columns by header name. The files must have the
+same columns, in any order. Handle quoted commas and multiline fields.
+
+Apply edits from either copy. Combine changes to different cells and accept
+identical edits once. Include rows inserted on either side. Honor deletions
+when the other side left the row unchanged or also deleted it.
+
+If both sides assign different values to a cell, insert different rows under
+the same key, or disagree between editing and deleting a row, report its key,
+the affected column or row, and all three versions on stderr. Exit 1 and emit
+no CSV. Report invalid inputs on stderr and exit 2.
+
+On success, write merged CSV to stdout in the original column and row order.
+Append new keys in ALICE's order, then any remaining new keys in BOB's order.

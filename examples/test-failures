@@ -1,0 +1,11 @@
+#!/usr/bin/env beg
+
+Accept a test command and its arguments. Run it in the current directory and
+forward stdout and stderr live to their corresponding streams.
+
+For Cargo or Rust test harness output, append one section per failing test to
+stderr after the run. Include its full failure output and a shell-quoted
+command that reruns just that test in the correct test target.
+
+Keep the original command's exit status, including when a build fails before
+any tests run.

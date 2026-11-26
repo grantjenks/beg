@@ -1,0 +1,23 @@
+#!/usr/bin/env beg
+
+Simulate a computer with a filesystem and a process table in memory. Both
+start empty. Use stdin, stdout, and stderr. All commands operate on the
+simulated state.
+
+Read UTF-8 commands one line at a time. Separate the command and its arguments
+with spaces. A path or process name is one word. Print no prompt.
+
+- "write PATH TEXT" creates or replaces a file with TEXT, which extends to the
+  end of the line. Print "OK" and a newline.
+- "cat PATH" prints the file contents followed by a newline.
+- "start NAME" creates a simulated process and prints its decimal PID and a
+  newline. Assign consecutive PIDs starting at 1.
+- "ps" prints one PID, a tab, and its name per line, in increasing PID order.
+- "kill PID" removes that process. Print "OK" and a newline.
+- "exit CODE" ends the simulation with the given decimal status from 0 to 255.
+
+For a missing file, print "error: file not found" and a newline to stderr.
+For an unknown PID, print "error: process not found" and a newline to stderr.
+For a malformed command, print "error: invalid command" and a newline to
+stderr. Continue after these errors. At EOF process any final unterminated
+line, then exit 0 if the session is still running.

@@ -1,0 +1,14 @@
+#!/usr/bin/env beg
+
+Accept a payouts CSV with payout_id, invoice_id, date, amount columns and an
+invoices CSV with invoice_id, date, amount columns. IDs are unique within their
+own tables, dates are YYYY-MM-DD, and amounts are exact decimals.
+
+Match explicit invoice IDs first. For payouts with a blank invoice ID, look among
+the remaining invoices for an equal amount and a date within three days either
+way. Confirm a match only when the payout has one candidate and that invoice
+has only one candidate payout. Report competing claims as ambiguous.
+
+Write a JSON object with matched pairs ({payout, invoice}), ambiguous claims
+({payout, invoices}), and lists of unmatched_payouts and unmatched_invoices.
+Use IDs in the report. Keep ambiguous IDs out of the unmatched lists.
